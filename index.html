@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Gerador de Agenda Insana</title>
+<style>
+:root{
+  --bg:#080808;
+  --panel:#111;
+  --panel2:#171717;
+  --line:#343434;
+  --text:#f2f2f2;
+  --muted:#9a9a9a;
+  --gold:#F36C0A;
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;
+  min-height:100%;
+  background:#080808;
+  color:var(--text);
+  font-family:Arial,Helvetica,sans-serif;
+}
+body{overflow-x:hidden}
+
+.app{
+  display:grid;
+  grid-template-columns:360px minmax(0,1fr);
+  min-height:100vh;
+  align-items:start;
+}
+
+/* Menu acompanha o scroll */
+.sidebar{
+  position:sticky;
+  top:0;
+  height:100vh;
+  overflow-y:auto;
+  padding:18px;
+  background:linear-gradient(180deg,#151515,#0e0e0e);
+  border-right:1px solid #2a2a2a;
+  scrollbar-width:thin;
+}
+
+.brand{
+  padding-bottom:14px;
+  margin-bottom:14px;
+  border-bottom:1px solid #2c2c2c;
+}
+.brand h1{
+  margin:0;
+  font-size:22px;
+  line-height:1.05;
+}
+.brand h1 span{color:var(--gold)}
+.brand p{
+  margin:7px 0 0;
+  color:#999;
+  font-size:12px;
+  line-height:1.45;
+}
+
+.section{
+  margin-bottom:12px;
+  padding:13px;
+  border:1px solid #2f2f2f;
+  border-radius:10px;
+  background:#101010;
+}
+.section h3{
+  margin:0 0 10px;
+  font-size:14px;
+  color:var(--gold);
+  text-transform:uppercase;
+  letter-spacing:.4px;
+}
+label{
+  display:block;
+  margin:9px 0 5px;
+  color:#bdbdbd;
+  font-size:11px;
+}
+input,select{
+  width:100%;
+  padding:9px 10px;
+  color:#fff;
+  background:#090909;
+  border:1px solid #393939;
+  border-radius:7px;
+  outline:none;
+}
+input:focus,select:focus{border-color:var(--gold)}
+input[type=range]{padding:0;height:6px;background:#393939;accent-color:var(--gold)}
+.grid2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.btns{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+button{
+  border:0;
+  border-radius:7px;
+  padding:9px 11px;
+  font-weight:700;
+  cursor:pointer;
+}
+.primary{background:var(--gold);color:#111}
+.secondary{background:#303030;color:#eee}
+.danger{background:#6a1e1e;color:#fff}
+
+#eventList{margin-top:4px}
+.empty{
+  padding:4px 0;
+  color:#777;
+  font-size:12px;
+}
+.event{
+  margin-top:8px;
+  padding:9px;
+  border:1px solid #2f2f2f;
+  border-radius:8px;
+  background:#0b0b0b;
+}
+.event-head{
+  display:grid;
+  grid-template-columns:1fr 60px;
+  gap:6px;
+}
+.event .btns{margin-top:7px}
+.event .btns button{
+  padding:6px 9px;
+  font-size:12px;
+}
+
+/* Preview */
+.main{
+  min-width:0;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  padding:20px;
+}
+.preview-wrap{
+  width:min(100%,720px);
+}
+.canvas-shell{
+  width:100%;
+  aspect-ratio:9/16;
+  background:#000;
+  border:1px solid #272727;
+  box-shadow:0 12px 38px rgba(0,0,0,.45);
+}
+canvas{
+  display:block;
+  width:100%;
+  height:100%;
+}
+
+/* Seletor de fundo */
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.7);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:100;
+  padding:20px;
+}
+.modal-overlay.open{display:flex}
+.modal{
+  width:min(100%,640px);
+  max-height:85vh;
+  overflow-y:auto;
+  background:#111;
+  border:1px solid #2f2f2f;
+  border-radius:12px;
+  padding:18px;
+}
+.modal-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:14px;
+}
+.modal-head h3{
+  margin:0;
+  color:var(--gold);
+  font-size:16px;
+  text-transform:uppercase;
+  letter-spacing:.4px;
+}
+.modal-close{
+  background:#303030;
+  color:#eee;
+  border:0;
+  border-radius:7px;
+  width:30px;
+  height:30px;
+  cursor:pointer;
+  font-size:16px;
+  line-height:1;
+}
+.bg-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+  gap:12px;
+}
+.bg-card{
+  border:2px solid #2f2f2f;
+  border-radius:10px;
+  overflow:hidden;
+  cursor:pointer;
+  background:#0b0b0b;
+  text-align:center;
+  padding-bottom:8px;
+  transition:border-color .15s;
+}
+.bg-card:hover{border-color:#555}
+.bg-card.selected{border-color:var(--gold)}
+.bg-thumb{
+  width:100%;
+  aspect-ratio:9/16;
+  object-fit:cover;
+  display:block;
+  background:#000;
+}
+.bg-card span{
+  display:block;
+  margin-top:6px;
+  font-size:12px;
+  color:#ddd;
+}
+
+/* Mobile */
+@media(max-width:900px){
+  .app{grid-template-columns:1fr}
+  .sidebar{
+    position:relative;
+    top:auto;
+    height:auto;
+    overflow:visible;
+    border-right:0;
+    border-bottom:1px solid #2a2a2a;
+  }
+  .main{padding:12px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <h1>GERADOR DE <span>AGENDA</span></h1>
+      <p>A arte-base 9:16 é usada inteira e sem nenhuma alteração. O código desenha apenas os eventos por cima.</p>
+    </div>
+
+    <div class="section">
+      <h3>Configuração</h3>
+      <div class="grid2">
+        <div>
+          <label>Divisão</label>
+          <input id="division" value="DIVISÃO JUÍNA - MT">
+        </div>
+        <div>
+          <label>Ano</label>
+          <input id="year" type="number" value="2026">
+        </div>
+      </div>
+      <label>Mês</label>
+      <select id="month">
+        <option value="">Nenhum</option>
+        <option value="JANEIRO">Janeiro</option>
+        <option value="FEVEREIRO">Fevereiro</option>
+        <option value="MARÇO">Março</option>
+        <option value="ABRIL">Abril</option>
+        <option value="MAIO">Maio</option>
+        <option value="JUNHO">Junho</option>
+        <option value="JULHO">Julho</option>
+        <option value="AGOSTO">Agosto</option>
+        <option value="SETEMBRO" selected>Setembro</option>
+        <option value="OUTUBRO">Outubro</option>
+        <option value="NOVEMBRO">Novembro</option>
+        <option value="DEZEMBRO">Dezembro</option>
+      </select>
+
+      <label>Mostrar divisão na agenda</label>
+      <select id="showDivision">
+        <option value="yes">Sim</option>
+        <option value="no">Não</option>
+      </select>
+
+      <label>Posição do mês/divisão <span id="headerOffsetVal">0px</span></label>
+      <input id="headerOffset" type="range" min="-100" max="150" step="5" value="0">
+    </div>
+
+    <div class="section">
+      <h3>Fundo da agenda</h3>
+      <div class="btns">
+        <button class="secondary" id="openBgPicker">🎨 Escolher fundo</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Importar do Excel</h3>
+      <p style="margin:0 0 10px;color:#999;font-size:11px;line-height:1.45">
+        Selecione uma planilha (.xlsx, .xls ou .csv) com uma coluna de dia/data e outra com o nome do evento.
+      </p>
+      <div class="btns">
+        <button class="secondary" id="importExcel">📥 Importar planilha</button>
+      </div>
+      <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" style="display:none">
+    </div>
+
+    <div class="section">
+      <h3>Adicionar evento</h3>
+      <label>Data</label>
+      <input id="newDate" placeholder="01/09">
+      <p style="margin:4px 0 0;color:#777;font-size:11px">O dia da semana é calculado automaticamente a partir da data e do ano.</p>
+
+      <label>Evento</label>
+      <input id="newTitle" placeholder="Nome do evento">
+
+      <label>Ícone</label>
+      <select id="newIcon">
+        <option value="🍺">🍺 Pub / Bar</option>
+        <option value="🤝">🤝 Reunião</option>
+        <option value="🍽️">🍽️ Almoço / Jantar</option>
+        <option value="🏁">🏁 Evento</option>
+        <option value="🔰">🔰 Desfile</option>
+        <option value="⚽">⚽ Futebol</option>
+        <option value="☕">☕ Café</option>
+        <option value="🏍️">🏍️ Moto / Bonde</option>
+        <option value="🌱">🌱 Ação social</option>
+        <option value="🍖">🍖 Churrasco</option>
+        <option value="📍">📍 Outro</option>
+      </select>
+
+      <div class="btns">
+        <button class="primary" id="add">+ Adicionar evento</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Eventos cadastrados</h3>
+      <div id="eventList"></div>
+    </div>
+
+    <div class="section">
+      <h3>Arquivo</h3>
+      <div class="btns">
+        <button class="primary" id="download">Baixar PNG</button>
+        <button class="secondary" id="save">Salvar</button>
+        <button class="danger" id="clear">Limpar tudo</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="preview-wrap">
+      <div class="canvas-shell">
+        <canvas id="poster" width="1080" height="1920"></canvas>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="bgModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Escolher fundo</h3>
+      <button class="modal-close" id="closeBgPicker">×</button>
+    </div>
+    <div class="bg-grid" id="bgGrid"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+const canvas = document.getElementById('poster');
+const ctx = canvas.getContext('2d');
+
+const bg = new Image();
+
+let events = JSON.parse(localStorage.getItem('agendaInsanaV3') || 'null') || [
+  {date:'01/09',day:'TERÇA-FEIRA',title:'PUB INSANO / LINGUIÇA A POMAROLA',icon:'🍺'},
+  {date:'03/09',day:'QUINTA-FEIRA',title:'REUNIÃO DA DIVISÃO',icon:'🤝'},
+  {date:'06/09',day:'DOMINGO',title:'ALMOÇO HOSPITAL DO CÂNCER - CASTANHEIRA-MT',icon:'🍽️'}
+];
+
+function esc(s){
+  return String(s).replace(/[&<>"']/g,m=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
+}
+
+// Estilos de fundo disponíveis. Para adicionar um novo estilo no futuro,
+// basta incluir um novo objeto {id, name, src} nesta lista.
+const bgStyles = [
+  {id:'base2', name:'Agenda regional', src:'agenda_base_9x16-2.png', headerOffsetY:40},
+  {id:'base', name:'Agenda Insana', src:'agenda_base_9x16.png', headerOffsetY:0}
+];
+
+let currentBgId = localStorage.getItem('agendaInsanaBgV3') || bgStyles[0].id;
+
+// Ajuste manual da posição do mês/divisão, guardado por estilo de fundo
+// (cada fundo pode precisar de um deslocamento diferente).
+const headerOffsets = JSON.parse(localStorage.getItem('agendaInsanaHeaderOffsetsV1') || '{}');
+
+function getHeaderOffset(id){
+  const style = bgStyles.find(s=>s.id===id) || bgStyles[0];
+  return headerOffsets[id] !== undefined ? headerOffsets[id] : (style.headerOffsetY || 0);
+}
+
+function loadBg(id){
+  const style = bgStyles.find(s=>s.id===id) || bgStyles[0];
+  currentBgId = style.id;
+  bg.src = style.src;
+  localStorage.setItem('agendaInsanaBgV3', currentBgId);
+
+  const offset = getHeaderOffset(currentBgId);
+  document.getElementById('headerOffset').value = offset;
+  document.getElementById('headerOffsetVal').textContent = offset + 'px';
+}
+
+function renderBgGrid(){
+  const grid = document.getElementById('bgGrid');
+  grid.innerHTML = '';
+  bgStyles.forEach(style=>{
+    const card = document.createElement('div');
+    card.className = 'bg-card' + (style.id === currentBgId ? ' selected' : '');
+    card.innerHTML = `<img class="bg-thumb" src="${style.src}" alt="${esc(style.name)}"><span>${esc(style.name)}</span>`;
+    card.onclick = () => {
+      loadBg(style.id);
+      renderBgGrid();
+      closeBgModal();
+    };
+    grid.appendChild(card);
+  });
+}
+
+function openBgModal(){
+  renderBgGrid();
+  document.getElementById('bgModal').classList.add('open');
+}
+
+function closeBgModal(){
+  document.getElementById('bgModal').classList.remove('open');
+}
+
+document.getElementById('openBgPicker').onclick = openBgModal;
+document.getElementById('closeBgPicker').onclick = closeBgModal;
+document.getElementById('bgModal').addEventListener('click', e=>{
+  if(e.target.id === 'bgModal') closeBgModal();
+});
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape') closeBgModal();
+});
+
+loadBg(currentBgId);
+
+// Importação de planilha (Excel/CSV) com colunas de dia e evento.
+const weekdayNames = ['DOMINGO','SEGUNDA-FEIRA','TERÇA-FEIRA','QUARTA-FEIRA','QUINTA-FEIRA','SEXTA-FEIRA','SÁBADO'];
+const monthIndexByName = {
+  'JANEIRO':0,'FEVEREIRO':1,'MARÇO':2,'ABRIL':3,'MAIO':4,'JUNHO':5,
+  'JULHO':6,'AGOSTO':7,'SETEMBRO':8,'OUTUBRO':9,'NOVEMBRO':10,'DEZEMBRO':11
+};
+
+// Interpreta "DD/MM" ou, se vier só o número do dia (ex: planilhas que só
+// têm a coluna "dia"), usa o mês já selecionado no formulário.
+function resolveDayMonth(raw){
+  raw = String(raw == null ? '' : raw).trim();
+
+  const full = raw.match(/^(\d{1,2})[\/\-](\d{1,2})/);
+  if(full) return {day:+full[1], month:+full[2]-1};
+
+  const dayOnly = raw.match(/^(\d{1,2})$/);
+  if(dayOnly){
+    const monthIdx = monthIndexByName[document.getElementById('month').value];
+    if(monthIdx === undefined) return null;
+    return {day:+dayOnly[1], month:monthIdx};
+  }
+
+  return null;
+}
+
+function normalizeHeader(h){
+  return String(h || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+
+function findColumn(headers, exactNames, includeNames, excludeNames = []){
+  let idx = headers.findIndex(h => exactNames.includes(h));
+  if(idx !== -1) return idx;
+  return headers.findIndex(h =>
+    includeNames.some(k => h.includes(k)) && !excludeNames.some(k => h.includes(k))
+  );
+}
+
+function formatExcelDate(v){
+  if(v instanceof Date && !isNaN(v)){
+    return String(v.getDate()).padStart(2,'0') + '/' + String(v.getMonth()+1).padStart(2,'0');
+  }
+
+  const raw = String(v == null ? '' : v).trim();
+  const dm = resolveDayMonth(raw);
+  if(dm) return String(dm.day).padStart(2,'0') + '/' + String(dm.month+1).padStart(2,'0');
+  return raw;
+}
+
+function weekdayFromDate(dateStr){
+  const dm = resolveDayMonth(dateStr);
+  if(!dm) return '';
+  const year = +document.getElementById('year').value || new Date().getFullYear();
+  const d = new Date(year, dm.month, dm.day);
+  if(isNaN(d)) return '';
+  return weekdayNames[d.getDay()];
+}
+
+function parseExcelRows(rows){
+  if(!rows.length) return [];
+  const headers = rows[0].map(normalizeHeader);
+
+  const dateCol = findColumn(headers, ['data','dia'], ['data','dia'], ['semana']);
+  const dayCol = findColumn(headers, ['dia da semana','semana'], ['semana']);
+  const titleCol = findColumn(headers, ['evento','nome do evento','titulo'], ['evento','nome','titulo']);
+  const iconCol = findColumn(headers, ['icone','emoji'], ['icone','emoji']);
+
+  if(dateCol === -1 || titleCol === -1) return [];
+
+  const result = [];
+  for(let i=1;i<rows.length;i++){
+    const row = rows[i];
+    if(!row || !row.length) continue;
+    const date = formatExcelDate(row[dateCol]);
+    const title = String(row[titleCol] == null ? '' : row[titleCol]).trim();
+    if(!date || !title) continue;
+    const day = dayCol !== -1 ? String(row[dayCol] || '').trim() : weekdayFromDate(date);
+    const icon = iconCol !== -1 ? String(row[iconCol] || '').trim() : '';
+    result.push({date, day, title, icon: icon || '📍'});
+  }
+  return result;
+}
+
+document.getElementById('importExcel').onclick = () => {
+  document.getElementById('excelFile').value = '';
+  document.getElementById('excelFile').click();
+};
+
+document.getElementById('excelFile').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try{
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, {type:'array', cellDates:true});
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
+      const imported = parseExcelRows(rows);
+
+      if(!imported.length){
+        alert('Não encontrei colunas de dia/data e evento nessa planilha. Confira os nomes das colunas.');
+        return;
+      }
+
+      const replace = confirm(`Encontrei ${imported.length} evento(s) na planilha.\n\nOK = substituir os eventos atuais.\nCancelar = adicionar aos eventos já existentes.`);
+      events = replace ? imported : events.concat(imported);
+
+      renderList();
+      draw();
+    }catch(err){
+      alert('Não consegui ler essa planilha. Confira se é um arquivo .xlsx, .xls ou .csv válido.');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+// Ao trocar o mês da agenda, atualiza o mês de todas as datas já
+// cadastradas (mantendo o dia), já que o mês passa a ser o mesmo pra todos.
+document.getElementById('month').addEventListener('change', () => {
+  const monthIdx = monthIndexByName[document.getElementById('month').value];
+  if(monthIdx === undefined || !events.length) return;
+
+  events.forEach(ev => {
+    const dm = resolveDayMonth(ev.date);
+    if(!dm) return;
+    ev.date = String(dm.day).padStart(2,'0') + '/' + String(monthIdx+1).padStart(2,'0');
+  });
+
+  renderList();
+});
+
+function renderList(){
+  const list = document.getElementById('eventList');
+  if(!events.length){
+    list.innerHTML = '<div class="empty">Nenhum evento adicionado.</div>';
+    return;
+  }
+  list.innerHTML = '';
+
+  events.forEach((ev,i)=>{
+    const d = document.createElement('div');
+    d.className = 'event';
+    d.innerHTML = `
+      <div class="event-head">
+        <input data-i="${i}" data-k="date" value="${esc(ev.date)}" placeholder="01/09">
+        <input data-i="${i}" data-k="icon" value="${esc(ev.icon)}">
+      </div>
+
+      <label>Evento</label>
+      <input data-i="${i}" data-k="title" value="${esc(ev.title)}">
+
+      <div class="btns">
+        <button class="secondary" onclick="moveEvent(${i},-1)">↑</button>
+        <button class="secondary" onclick="moveEvent(${i},1)">↓</button>
+        <button class="danger" onclick="removeEvent(${i})">Excluir</button>
+      </div>
+    `;
+    list.appendChild(d);
+  });
+
+  list.querySelectorAll('input').forEach(el=>{
+    el.addEventListener('input',e=>{
+      const i = +e.target.dataset.i;
+      const k = e.target.dataset.k;
+      events[i][k] = e.target.value;
+      draw();
+    });
+  });
+}
+
+window.removeEvent = i => {
+  events.splice(i,1);
+  renderList();
+  draw();
+};
+
+window.moveEvent = (i,dir) => {
+  const j = i + dir;
+  if(j < 0 || j >= events.length) return;
+  [events[i],events[j]] = [events[j],events[i]];
+  renderList();
+  draw();
+};
+
+// Formata a Data automaticamente enquanto digita (sem precisar da barra)
+// e completa com o mês selecionado quando só o dia é digitado.
+const newDateInput = document.getElementById('newDate');
+
+newDateInput.addEventListener('input', () => {
+  const digits = newDateInput.value.replace(/\D/g,'').slice(0,4);
+  newDateInput.value = digits.length <= 2 ? digits : digits.slice(0,2) + '/' + digits.slice(2);
+});
+
+newDateInput.addEventListener('blur', () => {
+  const digits = newDateInput.value.replace(/\D/g,'');
+  if(digits.length < 1 || digits.length > 2) return;
+  const monthIdx = monthIndexByName[document.getElementById('month').value];
+  if(monthIdx === undefined) return;
+  newDateInput.value = digits.padStart(2,'0') + '/' + String(monthIdx+1).padStart(2,'0');
+});
+
+document.getElementById('add').onclick = () => {
+  const date = document.getElementById('newDate').value.trim();
+  const title = document.getElementById('newTitle').value.trim();
+  const icon = document.getElementById('newIcon').value;
+
+  if(!date || !title){
+    alert('Preencha pelo menos a data e o evento.');
+    return;
+  }
+
+  events.push({date, day:weekdayFromDate(date), title, icon});
+
+  document.getElementById('newDate').value = '';
+  document.getElementById('newTitle').value = '';
+
+  renderList();
+  draw();
+};
+
+document.getElementById('clear').onclick = () => {
+  if(confirm('Apagar todos os eventos?')){
+    events = [];
+    renderList();
+    draw();
+  }
+};
+
+document.getElementById('save').onclick = () => {
+  localStorage.setItem('agendaInsanaV3', JSON.stringify(events));
+  localStorage.setItem('agendaInsanaMetaV3', JSON.stringify({
+    division:document.getElementById('division').value,
+    year:document.getElementById('year').value,
+    showDivision:document.getElementById('showDivision').value,
+    month:document.getElementById('month').value
+  }));
+  alert('Salvo neste navegador.');
+};
+
+document.getElementById('download').onclick = () => {
+  draw();
+  const a = document.createElement('a');
+  a.download = 'agenda-insana-9x16.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+};
+
+['division','year','showDivision','month'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',draw);
+  document.getElementById(id).addEventListener('change',draw);
+});
+
+document.getElementById('headerOffset').addEventListener('input', () => {
+  const offset = Number(document.getElementById('headerOffset').value);
+  headerOffsets[currentBgId] = offset;
+  document.getElementById('headerOffsetVal').textContent = offset + 'px';
+  localStorage.setItem('agendaInsanaHeaderOffsetsV1', JSON.stringify(headerOffsets));
+  draw();
+});
+
+const savedMeta = JSON.parse(localStorage.getItem('agendaInsanaMetaV3') || 'null');
+if(savedMeta){
+  if(savedMeta.division) document.getElementById('division').value = savedMeta.division;
+  if(savedMeta.year) document.getElementById('year').value = savedMeta.year;
+  if(savedMeta.showDivision) document.getElementById('showDivision').value = savedMeta.showDivision;
+  if(savedMeta.month !== undefined) document.getElementById('month').value = savedMeta.month;
+}
+
+function fitText(text,maxWidth,start,min=20){
+  let s = start;
+  while(s > min){
+    ctx.font = `700 ${s}px Arial`;
+    if(ctx.measureText(text).width <= maxWidth) break;
+    s--;
+  }
+  return s;
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // Usa a imagem do usuário INTEIRA e SEM ALTERAR.
+  if(bg.complete && bg.naturalWidth){
+    ctx.drawImage(bg,0,0,canvas.width,canvas.height);
+  }else{
+    ctx.fillStyle='#000';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
+
+  // Área central livre da arte-base.
+  // O conteúdo é sobreposto sem editar o fundo.
+  const division = (document.getElementById('division').value || '').toUpperCase();
+  const showDivision = document.getElementById('showDivision').value === 'yes';
+  const month = document.getElementById('month').value;
+
+  // Alguns fundos têm o cabeçalho desenhado mais alto; o usuário pode
+  // ajustar isso manualmente pelo slider "Posição do mês/divisão".
+  const headerOffsetY = getHeaderOffset(currentBgId);
+
+  if(month){
+    ctx.textAlign='center';
+    ctx.fillStyle='#F36C0A';
+    ctx.font='700 42px Arial';
+    ctx.fillText(month, canvas.width/2, 580 + headerOffsetY);
+  }
+
+  if(showDivision && division){
+    ctx.textAlign='center';
+    ctx.fillStyle='#bcbcbc';
+    ctx.font='700 30px Arial';
+    ctx.fillText(division, canvas.width/2, 620 + headerOffsetY);
+  }
+
+  // Mantém espaço abaixo do cabeçalho e acima do detalhe dourado inferior.
+  // A lista fica fixa mesmo com o ajuste de posição do mês/divisão, mas
+  // nunca chega mais perto que 15px do texto mais baixo do cabeçalho.
+  const x = 72;
+  const baseListTop = 620 + (showDivision && division ? 34 : 0) + 10;
+  let headerBottomY = null;
+  if(showDivision && division) headerBottomY = 620 + headerOffsetY;
+  else if(month) headerBottomY = 580 + headerOffsetY;
+  const listTop = headerBottomY !== null ? Math.max(baseListTop, headerBottomY + 15) : baseListTop;
+  const w = canvas.width - 144;
+  const bottom = 1695;
+  const n = Math.max(events.length,1);
+
+  // Ajusta a altura automaticamente para nunca sair do 9:16,
+  // deixando as linhas mais altas quando há poucos eventos.
+  const maxRowH = 150;
+  const minRowH = 58;
+  const available = bottom - listTop;
+  let rowH = Math.min(maxRowH, available / n);
+  rowH = Math.max(minRowH, rowH);
+
+  // Se houver muitos eventos, recalcula para caber todos.
+  if(rowH * n > available){
+    rowH = available / n;
+  }
+
+  // Centraliza o bloco verticalmente para preencher o espaço sobrando.
+  const listHeight = rowH * n;
+  const y = listTop + Math.max(0, (available - listHeight) / 2);
+
+  // Só desenha a moldura quando houver eventos.
+  if(events.length){
+    ctx.strokeStyle='rgba(225,225,225,.85)';
+    ctx.lineWidth=1.5;
+    roundRect(ctx,x,y,w,rowH*n,10);
+    ctx.stroke();
+  }
+
+  events.forEach((ev,i)=>{
+    const ry = y + i*rowH;
+
+    if(i > 0){
+      ctx.strokeStyle='rgba(220,220,220,.55)';
+      ctx.lineWidth=1;
+      ctx.beginPath();
+      ctx.moveTo(x,ry);
+      ctx.lineTo(x+w,ry);
+      ctx.stroke();
+    }
+
+    // data
+    ctx.textAlign='center';
+    ctx.fillStyle='#F36C0A';
+    ctx.font=`700 ${Math.max(24,Math.min(39,rowH*.44))}px Arial`;
+    ctx.fillText(ev.date || '--/--', x+110, ry+rowH*.45);
+
+    // dia (calculado automaticamente pela data + ano; texto salvo é só reserva)
+    const weekday = weekdayFromDate(ev.date) || (ev.day || '').toUpperCase();
+    ctx.fillStyle='#f2f2f2';
+    ctx.font=`700 ${Math.max(14,Math.min(19,rowH*.21))}px Arial`;
+    ctx.fillText(weekday, x+110, ry+rowH*.73);
+
+    // separador
+    ctx.strokeStyle='#F36C0A';
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(x+230,ry+rowH*.20);
+    ctx.lineTo(x+230,ry+rowH*.80);
+    ctx.stroke();
+
+    // evento
+    const title = (ev.title || '').toUpperCase();
+    const maxTitleWidth = w - 230 - 115;
+    const fontSize = fitText(title,maxTitleWidth,Math.min(30,rowH*.35),15);
+
+    ctx.textAlign='left';
+    ctx.fillStyle='#d7d7d7';
+    ctx.font=`700 ${fontSize}px Arial`;
+    ctx.fillText(title, x+260, ry+rowH*.60);
+
+    // ícone
+    ctx.textAlign='center';
+    ctx.font=`${Math.max(26,Math.min(42,rowH*.48))}px "Segoe UI Emoji","Apple Color Emoji",sans-serif`;
+    ctx.fillText(ev.icon || '📍', x+w-52, ry+rowH*.62);
+  });
+}
+
+bg.onload = draw;
+renderList();
+draw();
+</script>
+</body>
+</html>
