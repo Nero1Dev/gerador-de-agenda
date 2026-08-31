@@ -357,6 +357,7 @@ canvas{
       <h3>Arquivo</h3>
       <div class="btns">
         <button class="primary" id="download">Baixar PNG</button>
+        <button class="secondary" id="shareWhatsapp">💬 Enviar WhatsApp</button>
         <button class="secondary" id="save">Salvar</button>
         <button class="danger" id="clear">Limpar tudo</button>
       </div>
@@ -706,12 +707,66 @@ document.getElementById('save').onclick = () => {
   alert('Salvo neste navegador.');
 };
 
-document.getElementById('download').onclick = () => {
+// Gera o PNG como Blob (mais confiável que toDataURL no Safari, que às
+// vezes falha silenciosamente ao baixar data: URIs muito grandes).
+function getPosterBlob(){
   draw();
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+}
+
+function getPosterFile(blob){
+  return new File([blob], 'agenda-insana-9x16.png', {type:'image/png'});
+}
+
+function downloadBlob(blob){
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.download = 'agenda-insana-9x16.png';
-  a.href = canvas.toDataURL('image/png');
+  a.href = url;
   a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+async function downloadPoster(){
+  const blob = await getPosterBlob();
+  const file = getPosterFile(blob);
+
+  // No Safari (principalmente iOS) o download via <a download> costuma
+  // confirmar mas não salvar nada. A folha de compartilhamento nativa
+  // (Web Share API) é o jeito confiável de salvar a imagem por lá.
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({files:[file]});
+      return;
+    }catch(err){
+      if(err && err.name === 'AbortError') return;
+    }
+  }
+
+  downloadBlob(blob);
+}
+
+document.getElementById('download').onclick = downloadPoster;
+
+document.getElementById('shareWhatsapp').onclick = async () => {
+  const blob = await getPosterBlob();
+  const file = getPosterFile(blob);
+
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({files:[file], title:'Agenda'});
+      return;
+    }catch(err){
+      if(err && err.name === 'AbortError') return;
+    }
+  }
+
+  // Sem suporte a compartilhar arquivo (ex: computador): baixa o PNG e
+  // abre o WhatsApp Web pra anexar manualmente, já que links wa.me não
+  // permitem anexar imagem automaticamente.
+  alert('Seu navegador não permite enviar a imagem direto pro WhatsApp. Vou baixar o PNG — é só anexar na conversa do WhatsApp.');
+  downloadBlob(blob);
+  window.open('https://wa.me/', '_blank');
 };
 
 ['division','year','showDivision','month'].forEach(id=>{
