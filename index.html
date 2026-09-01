@@ -790,14 +790,52 @@ if(savedMeta){
   if(savedMeta.month !== undefined) document.getElementById('month').value = savedMeta.month;
 }
 
-function fitText(text,maxWidth,start,min=20){
-  let s = start;
-  while(s > min){
-    ctx.font = `700 ${s}px Arial`;
-    if(ctx.measureText(text).width <= maxWidth) break;
-    s--;
+// Quebra um texto em linhas que cabem em maxWidth, na fonte já setada em ctx.
+function wrapLines(text,maxWidth){
+  const words = text.split(' ').filter(Boolean);
+  if(!words.length) return [''];
+  const lines = [];
+  let current = words[0];
+  for(let i=1;i<words.length;i++){
+    const test = current + ' ' + words[i];
+    if(ctx.measureText(test).width <= maxWidth){
+      current = test;
+    }else{
+      lines.push(current);
+      current = words[i];
+    }
   }
-  return s;
+  lines.push(current);
+  return lines;
+}
+
+function ellipsize(text,maxWidth){
+  if(ctx.measureText(text).width <= maxWidth) return text;
+  let s = text;
+  while(s.length > 1 && ctx.measureText(s + '…').width > maxWidth){
+    s = s.slice(0,-1);
+  }
+  return s + '…';
+}
+
+// Ajusta o título em até 2 linhas, reduzindo a fonte até caber na largura
+// e na altura disponíveis, em vez de estourar o quadro com uma linha só.
+function fitTitle(text,maxWidth,maxHeight,start,min=14){
+  let size = start;
+  let lines;
+  while(size > min){
+    ctx.font = `700 ${size}px Arial`;
+    lines = wrapLines(text,maxWidth);
+    const lineHeight = size * 1.18;
+    if(lines.length <= 2 && lines.length * lineHeight <= maxHeight) break;
+    size--;
+  }
+  ctx.font = `700 ${size}px Arial`;
+  lines = wrapLines(text,maxWidth);
+  if(lines.length > 2){
+    lines = [lines[0], ellipsize(lines.slice(1).join(' '),maxWidth)];
+  }
+  return {size, lines};
 }
 
 function roundRect(ctx,x,y,w,h,r){
@@ -915,15 +953,20 @@ function draw(){
     ctx.lineTo(x+230,ry+rowH*.80);
     ctx.stroke();
 
-    // evento
+    // evento (quebra em até 2 linhas quando o nome é grande demais)
     const title = (ev.title || '').toUpperCase();
     const maxTitleWidth = w - 230 - 115;
-    const fontSize = fitText(title,maxTitleWidth,Math.min(30,rowH*.35),15);
+    const maxTitleHeight = rowH * 0.86;
+    const {size:fontSize, lines:titleLines} = fitTitle(title,maxTitleWidth,maxTitleHeight,Math.min(30,rowH*.35));
 
     ctx.textAlign='left';
     ctx.fillStyle='#d7d7d7';
     ctx.font=`700 ${fontSize}px Arial`;
-    ctx.fillText(title, x+260, ry+rowH*.60);
+    const titleLineHeight = fontSize * 1.18;
+    const titleStartY = ry + rowH/2 - (titleLineHeight*titleLines.length)/2 + fontSize*0.85;
+    titleLines.forEach((line,li)=>{
+      ctx.fillText(line, x+260, titleStartY + li*titleLineHeight);
+    });
 
     // ícone
     ctx.textAlign='center';
