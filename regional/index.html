@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Gerador de Agenda Regional</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080808;
+  --panel:#111;
+  --line:#343434;
+  --text:#f2f2f2;
+  --muted:#9a9a9a;
+  --gold:#F36C0A;
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;
+  min-height:100%;
+  background:#080808;
+  color:var(--text);
+  font-family:Arial,Helvetica,sans-serif;
+}
+body{overflow-x:hidden}
+
+.app{
+  display:grid;
+  grid-template-columns:380px minmax(0,1fr);
+  min-height:100vh;
+  align-items:start;
+}
+
+.sidebar{
+  position:sticky;
+  top:0;
+  height:100vh;
+  overflow-y:auto;
+  padding:18px;
+  background:linear-gradient(180deg,#151515,#0e0e0e);
+  border-right:1px solid #2a2a2a;
+  scrollbar-width:thin;
+}
+
+.brand{
+  padding-bottom:14px;
+  margin-bottom:14px;
+  border-bottom:1px solid #2c2c2c;
+}
+.brand h1{
+  margin:0;
+  font-size:22px;
+  line-height:1.05;
+}
+.brand h1 span{color:var(--gold)}
+.brand p{
+  margin:7px 0 0;
+  color:#999;
+  font-size:12px;
+  line-height:1.45;
+}
+.brand a{color:var(--gold)}
+
+.section{
+  margin-bottom:12px;
+  padding:13px;
+  border:1px solid #2f2f2f;
+  border-radius:10px;
+  background:#101010;
+}
+.section h3{
+  margin:0 0 10px;
+  font-size:14px;
+  color:var(--gold);
+  text-transform:uppercase;
+  letter-spacing:.4px;
+}
+.hint{
+  margin:6px 0 0;
+  color:#888;
+  font-size:11px;
+  line-height:1.45;
+}
+label{
+  display:block;
+  margin:9px 0 5px;
+  color:#bdbdbd;
+  font-size:11px;
+}
+input,select{
+  width:100%;
+  padding:9px 10px;
+  color:#fff;
+  background:#090909;
+  border:1px solid #393939;
+  border-radius:7px;
+  outline:none;
+}
+input:focus,select:focus{border-color:var(--gold)}
+input[type=range]{padding:0;height:6px;background:#393939;accent-color:var(--gold)}
+.grid2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.btns{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+button{
+  border:0;
+  border-radius:7px;
+  padding:9px 11px;
+  font-weight:700;
+  cursor:pointer;
+}
+.primary{background:var(--gold);color:#111}
+.secondary{background:#303030;color:#eee}
+.danger{background:#6a1e1e;color:#fff}
+.small{padding:6px 9px;font-size:12px}
+
+/* Escolha de layout */
+.layouts{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+}
+.layout-card{
+  display:flex;
+  flex-direction:column;
+  padding:0 0 8px;
+  border:2px solid #2f2f2f;
+  border-radius:10px;
+  overflow:hidden;
+  background:#0b0b0b;
+  color:#ddd;
+  text-align:center;
+  font-weight:700;
+  font-size:12px;
+  transition:border-color .15s;
+}
+.layout-card:hover{border-color:#555}
+.layout-card.selected{border-color:var(--gold)}
+.layout-card img{
+  display:block;
+  width:100%;
+  aspect-ratio:9/16;
+  object-fit:cover;
+  background:#000;
+  margin-bottom:6px;
+}
+.layout-desc{
+  margin-top:10px;
+  padding:9px 10px;
+  border-radius:8px;
+  background:#0b0b0b;
+  border:1px solid #2a2a2a;
+  color:#bbb;
+  font-size:12px;
+  line-height:1.45;
+}
+.layout-desc strong{color:#fff}
+.zoom-link{
+  margin-top:6px;
+  background:none;
+  padding:0;
+  color:var(--gold);
+  font-size:12px;
+  text-decoration:underline;
+}
+
+.warn{
+  display:none;
+  margin-bottom:12px;
+  padding:10px 12px;
+  border:1px solid #7a4a12;
+  border-radius:10px;
+  background:#2a1a08;
+  color:#ffcf9a;
+  font-size:12px;
+  line-height:1.45;
+}
+.warn.show{display:block}
+
+/* Divisões */
+.division{
+  margin-top:10px;
+  border:1px solid #2f2f2f;
+  border-radius:9px;
+  background:#0b0b0b;
+}
+.division summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:10px 11px;
+  cursor:pointer;
+  font-size:13px;
+  font-weight:700;
+  list-style:none;
+}
+.division summary::-webkit-details-marker{display:none}
+.division summary::before{
+  content:'▸';
+  color:var(--gold);
+  margin-right:2px;
+}
+.division[open] summary::before{content:'▾'}
+.division summary .name{
+  flex:1;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.division summary .count{
+  color:#888;
+  font-size:11px;
+  font-weight:400;
+  white-space:nowrap;
+}
+.division-body{
+  padding:0 11px 11px;
+  border-top:1px solid #222;
+}
+.event{
+  margin-top:8px;
+  padding:8px;
+  border:1px solid #262626;
+  border-radius:8px;
+  background:#070707;
+}
+.event-head{
+  display:grid;
+  grid-template-columns:1fr 56px;
+  gap:6px;
+}
+.event .title-in{margin-top:6px}
+.event .btns{margin-top:6px}
+.event .btns button{padding:5px 9px;font-size:12px}
+.add-box{
+  margin-top:10px;
+  padding:9px;
+  border:1px dashed #3a3a3a;
+  border-radius:8px;
+}
+.empty{
+  padding:6px 0 0;
+  color:#777;
+  font-size:12px;
+}
+
+/* Preview */
+.main{
+  min-width:0;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  padding:20px;
+}
+.preview-wrap{width:min(100%,720px)}
+.canvas-shell{
+  width:100%;
+  aspect-ratio:9/16;
+  background:#000;
+  border:1px solid #272727;
+  box-shadow:0 12px 38px rgba(0,0,0,.45);
+}
+canvas{
+  display:block;
+  width:100%;
+  height:100%;
+}
+
+/* Modal de exemplo */
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.8);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:100;
+  padding:20px;
+}
+.modal-overlay.open{display:flex}
+.modal{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
+  max-height:100%;
+}
+.modal img{
+  display:block;
+  max-height:calc(100vh - 120px);
+  max-width:100%;
+  aspect-ratio:9/16;
+  border:1px solid #333;
+  border-radius:8px;
+}
+.modal .btns{margin:0}
+
+@media(max-width:900px){
+  .app{grid-template-columns:1fr}
+  .sidebar{
+    position:relative;
+    top:auto;
+    height:auto;
+    overflow:visible;
+    border-right:0;
+    border-bottom:1px solid #2a2a2a;
+  }
+  .main{padding:12px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <h1>AGENDA <span>REGIONAL</span></h1>
+      <p>Junta a agenda de várias divisões em uma imagem 9:16. Para a agenda de uma divisão só, use o <a href="/">gerador normal</a>.</p>
+    </div>
+
+    <div class="section">
+      <h3>Layout</h3>
+      <div class="layouts" id="layoutCards"></div>
+      <div class="layout-desc" id="layoutDesc"></div>
+    </div>
+
+    <div class="warn" id="warn"></div>
+
+    <div class="section">
+      <h3>Configuração</h3>
+      <label>Regional</label>
+      <input id="regional" value="REGIONAL BRASNORTE - MT">
+      <div class="grid2">
+        <div>
+          <label>Mês</label>
+          <select id="month">
+            <option value="">Nenhum</option>
+            <option value="JANEIRO">Janeiro</option>
+            <option value="FEVEREIRO">Fevereiro</option>
+            <option value="MARÇO">Março</option>
+            <option value="ABRIL">Abril</option>
+            <option value="MAIO">Maio</option>
+            <option value="JUNHO">Junho</option>
+            <option value="JULHO">Julho</option>
+            <option value="AGOSTO">Agosto</option>
+            <option value="SETEMBRO">Setembro</option>
+            <option value="OUTUBRO">Outubro</option>
+            <option value="NOVEMBRO">Novembro</option>
+            <option value="DEZEMBRO">Dezembro</option>
+          </select>
+        </div>
+        <div>
+          <label>Ano</label>
+          <input id="year" type="number">
+        </div>
+      </div>
+
+      <label>Posição do mês/regional <span id="headerOffsetVal">0px</span></label>
+      <input id="headerOffset" type="range" min="-100" max="100" step="5" value="0">
+    </div>
+
+    <div class="section">
+      <h3>Divisões</h3>
+      <p class="hint">Cada divisão vira um bloco na agenda. A sigla aparece só no layout "Lista por data".</p>
+      <div id="divisionList"></div>
+      <div class="btns">
+        <button class="primary" id="addDivision">+ Adicionar divisão</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Importar do Excel</h3>
+      <p class="hint" style="margin:0 0 4px">
+        Planilha com colunas de <strong>divisão</strong>, <strong>data</strong> e <strong>evento</strong> (ícone opcional). Cada divisão diferente vira um bloco. Sem a coluna de divisão, use o botão "Importar" dentro da divisão.
+      </p>
+      <div class="btns">
+        <button class="secondary" id="importAll">📥 Importar planilha</button>
+      </div>
+      <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" style="display:none">
+    </div>
+
+    <div class="section">
+      <h3>Arquivo</h3>
+      <div class="btns">
+        <button class="primary" id="download">Baixar PNG</button>
+        <button class="secondary" id="shareWhatsapp">💬 Enviar WhatsApp</button>
+        <button class="secondary" id="save">Salvar</button>
+        <button class="danger" id="clear">Limpar tudo</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="preview-wrap">
+      <div class="canvas-shell">
+        <canvas id="poster" width="1080" height="1920"></canvas>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="exampleModal">
+  <div class="modal">
+    <img id="exampleImg" alt="Exemplo do layout">
+    <div class="btns">
+      <button class="primary" id="useExample">Usar este layout</button>
+      <button class="secondary" id="closeExample">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+const canvas = document.getElementById('poster');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+const FONT = '"Oswald","Arial Narrow",Arial,sans-serif';
+const EMOJI_FONT = '"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif';
+const ORANGE = '#F36C0A';
+
+const STORE_KEY = 'agendaRegionalV1';
+
+const bg = new Image();
+bg.src = '../agenda_base_9x16-2.png';
+
+const weekdayShort = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+const monthIndexByName = {
+  'JANEIRO':0,'FEVEREIRO':1,'MARÇO':2,'ABRIL':3,'MAIO':4,'JUNHO':5,
+  'JULHO':6,'AGOSTO':7,'SETEMBRO':8,'OUTUBRO':9,'NOVEMBRO':10,'DEZEMBRO':11
+};
+const monthNames = Object.keys(monthIndexByName);
+
+const iconOptions = [
+  ['🍺','Pub / Bar'],['🤝','Reunião'],['🍽️','Almoço / Jantar'],['🏁','Evento'],
+  ['🔰','Desfile'],['⚽','Futebol'],['☕','Café'],['🏍️','Moto / Bonde'],
+  ['🌱','Ação social'],['🍖','Churrasco'],['📍','Outro']
+];
+
+// Os três layouts. "capacity" é só uma referência pra quem escolhe;
+// o desenho reduz as linhas automaticamente quando passa disso.
+const layouts = [
+  {id:'grade', name:'Grade', title:'Grade de cartões',
+   desc:'Duas colunas, um cartão por divisão. Cada cartão cresce conforme a quantidade de eventos.',
+   capacity:'Ideal até 6 divisões e ~45 eventos.'},
+  {id:'faixas', name:'Faixas', title:'Faixas empilhadas',
+   desc:'Uma faixa na largura toda por divisão, com o nome em destaque e os eventos em 2 colunas.',
+   capacity:'Ideal até 5–6 divisões e ~45 eventos.'},
+  {id:'lista', name:'Lista por data', title:'Lista por data',
+   desc:'Todos os eventos numa lista só, em ordem de data, com a sigla da divisão em cada linha.',
+   capacity:'Ideal até ~28 eventos no total (meses mais tranquilos).'}
+];
+
+function esc(s){
+  return String(s).replace(/[&<>"']/g,m=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
+}
+
+function uid(){
+  return Math.random().toString(36).slice(2,10);
+}
+
+/* ---------- Estado ---------- */
+
+function sampleDivisions(monthIdx, count = 6, perDiv = null){
+  const titles = ['REUNIÃO DA DIVISÃO','PUB INSANO','BONDE NOTURNO','AÇÃO SOCIAL DIA DAS CRIANÇAS','CHURRASCO','TREINO','JANTA','BATE E VOLTA','CAFÉ DA MANHÃ','REUNIÃO DIRETORIA'];
+  const icons = ['🤝','🍺','🏍️','🌱','🍖','📍','🍽️','🏍️','☕','🤝'];
+  const plans = [
+    [2,6,10,14,17,22,28],
+    [1,7,10,11,13,20,22,28],
+    [1,3,7,9,11,16,20,24,30],
+    [2,6,8,12,16,18,20,24,26,30],
+    [5,12,15,19,25,31],
+    [4,13,21,27]
+  ];
+  const letters = 'ABCDEF';
+  const mm = String(monthIdx+1).padStart(2,'0');
+  return plans.slice(0,count).map((days,di)=>({
+    id:uid(),
+    name:`DIVISÃO ${letters[di]} - CIDADE`,
+    tag:`DIV ${letters[di]}`,
+    events:(perDiv ? days.slice(0,perDiv) : days).map((d,i)=>{
+      const k = (i*3 + d + di) % titles.length;
+      return {date:String(d).padStart(2,'0') + '/' + mm, title:titles[k], icon:icons[k]};
+    })
+  }));
+}
+
+const now = new Date();
+let state = null;
+try{ state = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); }catch(e){}
+if(!state || !Array.isArray(state.divisions)){
+  state = {
+    layout:'grade',
+    regional:'REGIONAL BRASNORTE - MT',
+    month:monthNames[now.getMonth()],
+    year:now.getFullYear(),
+    headerOffset:0,
+    divisions:sampleDivisions(now.getMonth())
+  };
+}
+
+const openDivisions = new Set();
+
+/* ---------- Datas ---------- */
+
+function resolveDayMonth(raw){
+  raw = String(raw == null ? '' : raw).trim();
+  const full = raw.match(/^(\d{1,2})[\/\-](\d{1,2})/);
+  if(full) return {day:+full[1], month:+full[2]-1};
+  const dayOnly = raw.match(/^(\d{1,2})$/);
+  if(dayOnly){
+    const monthIdx = monthIndexByName[state.month];
+    if(monthIdx === undefined) return null;
+    return {day:+dayOnly[1], month:monthIdx};
+  }
+  return null;
+}
+
+function weekdayShortFromDate(dateStr, year){
+  const dm = resolveDayMonth(dateStr);
+  if(!dm) return '';
+  const d = new Date(year || state.year || now.getFullYear(), dm.month, dm.day);
+  return isNaN(d) ? '' : weekdayShort[d.getDay()];
+}
+
+function dateKey(dateStr){
+  const dm = resolveDayMonth(dateStr);
+  return dm ? dm.month*100 + dm.day : 9999;
+}
+
+function formatDate(v){
+  if(v instanceof Date && !isNaN(v)){
+    return String(v.getDate()).padStart(2,'0') + '/' + String(v.getMonth()+1).padStart(2,'0');
+  }
+  const raw = String(v == null ? '' : v).trim();
+  const dm = resolveDayMonth(raw);
+  if(dm) return String(dm.day).padStart(2,'0') + '/' + String(dm.month+1).padStart(2,'0');
+  return raw;
+}
+
+// Sigla automática: primeira palavra depois de "DIVISÃO", até 4 letras.
+function autoTag(name){
+  const clean = String(name || '').toUpperCase().replace(/^DIVIS[ÃA]O\s*/,'').trim();
+  const word = clean.split(/[\s\-]+/).filter(Boolean)[0] || '';
+  return word.slice(0,4) || '?';
+}
+
+function tagOf(div){
+  return (div.tag || '').trim().toUpperCase() || autoTag(div.name);
+}
+
+/* ---------- Ajuda de desenho ---------- */
+
+function roundRect(c,x,y,w,h,r){
+  c.beginPath();
+  c.moveTo(x+r,y);
+  c.arcTo(x+w,y,x+w,y+h,r);
+  c.arcTo(x+w,y+h,x,y+h,r);
+  c.arcTo(x,y+h,x,y,r);
+  c.arcTo(x,y,x+w,y,r);
+  c.closePath();
+}
+
+function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+
+function wrapLines(c,text,maxWidth){
+  const words = text.split(' ').filter(Boolean);
+  if(!words.length) return [''];
+  const lines = [];
+  let current = words[0];
+  for(let i=1;i<words.length;i++){
+    const test = current + ' ' + words[i];
+    if(c.measureText(test).width <= maxWidth) current = test;
+    else{ lines.push(current); current = words[i]; }
+  }
+  lines.push(current);
+  return lines;
+}
+
+function ellipsize(c,text,maxWidth){
+  if(c.measureText(text).width <= maxWidth) return text;
+  let s = text;
+  while(s.length > 1 && c.measureText(s + '…').width > maxWidth) s = s.slice(0,-1);
+  return s + '…';
+}
+
+// Reduz a fonte até o texto caber em maxLines linhas dentro da caixa.
+function fitText(c,text,maxWidth,maxHeight,start,min,maxLines,weight=600){
+  let size = Math.floor(start);
+  let lines;
+  while(size > min){
+    c.font = `${weight} ${size}px ${FONT}`;
+    lines = wrapLines(c,text,maxWidth);
+    if(lines.length <= maxLines && lines.length * size * 1.15 <= maxHeight) break;
+    size--;
+  }
+  c.font = `${weight} ${size}px ${FONT}`;
+  lines = wrapLines(c,text,maxWidth);
+  if(lines.length > maxLines){
+    lines = lines.slice(0,maxLines-1).concat(ellipsize(c,lines.slice(maxLines-1).join(' '),maxWidth));
+  }
+  return {size, lines};
+}
+
+function drawTextLines(c,lines,size,x,cy){
+  const lh = size * 1.15;
+  const startY = cy - (lh*lines.length)/2 + size*0.82;
+  lines.forEach((line,i)=>c.fillText(line, x, startY + i*lh));
+}
+
+const PANEL_FILL = 'rgba(8,8,8,.84)';
+const PANEL_STROKE = 'rgba(235,235,235,.55)';
+
+function drawPanel(c,x,y,w,h){
+  c.fillStyle = PANEL_FILL;
+  roundRect(c,x,y,w,h,10);
+  c.fill();
+  c.strokeStyle = PANEL_STROKE;
+  c.lineWidth = 1.5;
+  c.stroke();
+}
+
+function hLine(c,x1,x2,y,color,width=1,dash=null){
+  c.save();
+  c.strokeStyle = color;
+  c.lineWidth = width;
+  if(dash) c.setLineDash(dash);
+  c.beginPath();
+  c.moveTo(x1,y);
+  c.lineTo(x2,y);
+  c.stroke();
+  c.restore();
+}
+
+// Bloco da data (dia + dia da semana). Retorna a largura ocupada.
+function drawDate(c,ev,x,y,h,year,showDate=true){
+  const dateSize = clamp(h*.46, 13, 32);
+  const dateW = Math.round(dateSize*2.75);
+  if(showDate){
+    const cx = x + dateW/2;
+    const stacked = h >= 34;
+    c.textAlign = 'center';
+    c.fillStyle = ORANGE;
+    c.font = `700 ${dateSize}px ${FONT}`;
+    c.fillText(ev.date || '--/--', cx, y + (stacked ? h*.52 : h*.5 + dateSize*.36));
+    if(stacked){
+      c.fillStyle = '#ececec';
+      c.font = `600 ${clamp(h*.22, 9, 16)}px ${FONT}`;
+      c.fillText(weekdayShortFromDate(ev.date, year), cx, y + h*.84);
+    }
+  }
+  return dateW;
+}
+
+function drawIcon(c,icon,x,y,h){
+  const size = clamp(h*.5, 12, 36);
+  c.textAlign = 'center';
+  c.font = `${size}px ${EMOJI_FONT}`;
+  c.fillText(icon || '📍', x, y + h/2 + size*.36);
+  return size;
+}
+
+// Uma linha de evento: data | separador | [sigla] | título | ícone
+function drawEventRow(c,ev,x,y,w,h,year,opts={}){
+  const pad = clamp(h*.25, 6, 14);
+  const dateW = drawDate(c,ev,x+pad,y,h,year,opts.showDate !== false);
+
+  const sepX = x + pad + dateW + 6;
+  c.strokeStyle = ORANGE;
+  c.lineWidth = 2;
+  c.beginPath();
+  c.moveTo(sepX, y + h*.2);
+  c.lineTo(sepX, y + h*.8);
+  c.stroke();
+
+  let titleX = sepX + 12;
+  if(opts.chip){
+    titleX += drawChip(c,opts.chip,titleX,y + h/2,h,opts.chipW) + 12;
+  }
+
+  const iconSize = clamp(h*.5, 12, 36);
+  const iconX = x + w - pad - iconSize/2;
+  drawIcon(c,ev.icon,iconX,y,h);
+
+  const maxW = iconX - iconSize/2 - 10 - titleX;
+  const maxLines = h >= 54 ? 2 : 1;
+  const {size, lines} = fitText(c,(ev.title || '').toUpperCase(),maxW,h*.86,clamp(h*.42,11,28),10,maxLines);
+  c.textAlign = 'left';
+  c.fillStyle = '#dcdcdc';
+  c.font = `600 ${size}px ${FONT}`;
+  drawTextLines(c,lines,size,titleX,y + h/2);
+}
+
+/* ---------- Siglas (layout lista) ---------- */
+
+const chipStyles = [
+  {fill:ORANGE, text:'#111'},
+  {fill:'#f2f2f2', text:'#111'},
+  {fill:'#6b6b6b', text:'#fff'},
+  {stroke:ORANGE, text:ORANGE},
+  {stroke:'#f2f2f2', text:'#f2f2f2'},
+  {fill:'#8a3d08', text:'#fff'},
+  {stroke:'#8a8a8a', text:'#c4c4c4'},
+  {fill:'#2b2b2b', stroke:ORANGE, text:'#fff'}
+];
+
+function chipFont(h){ return `700 ${clamp(h*.36, 10, 18)}px ${FONT}`; }
+
+function drawChip(c,chip,x,cy,h,width){
+  const ch = clamp(h*.6, 14, 30);
+  c.font = chipFont(h);
+  const w = width || c.measureText(chip.tag).width + ch*.8;
+  const st = chipStyles[chip.style % chipStyles.length];
+  roundRect(c,x,cy-ch/2,w,ch,5);
+  if(st.fill){ c.fillStyle = st.fill; c.fill(); }
+  if(st.stroke){ c.strokeStyle = st.stroke; c.lineWidth = 2; c.stroke(); }
+  c.fillStyle = st.text;
+  c.textAlign = 'center';
+  c.fillText(chip.tag, x + w/2, cy + ch*.3);
+  return w;
+}
+
+/* ---------- Layouts ---------- */
+
+const AREA_X = 40;
+const AREA_W = W - 80;
+const AREA_BOTTOM = 1870;
+
+// Distribui as divisões em 2 colunas com alturas parecidas,
+// mantendo a ordem dentro de cada coluna.
+function balanceColumns(divs){
+  const cols = [[],[]];
+  const weight = [0,0];
+  divs.forEach(d=>{
+    const i = weight[0] <= weight[1] ? 0 : 1;
+    cols[i].push(d);
+    weight[i] += d.events.length + 1.3;
+  });
+  return cols;
+}
+
+function drawGrade(c,divs,top,year){
+  const avail = AREA_BOTTOM - top;
+  const cols = divs.length > 1 ? balanceColumns(divs) : [divs];
+  const gap = 14;
+  const colW = (AREA_W - (cols.length-1)*16) / cols.length;
+  const headerH = 50;
+
+  let rowH = 58;
+  cols.forEach(col=>{
+    const rows = col.reduce((s,d)=>s + d.events.length, 0);
+    if(!rows) return;
+    rowH = Math.min(rowH, (avail - col.length*headerH - (col.length-1)*gap) / rows);
+  });
+
+  const colHeights = cols.map(col =>
+    col.reduce((s,d)=>s + headerH + d.events.length*rowH, 0) + Math.max(0,col.length-1)*gap
+  );
+  const startY = top + Math.max(0, (avail - Math.max(...colHeights)) / 2);
+
+  cols.forEach((col,ci)=>{
+    const x = AREA_X + ci*(colW + 16);
+    let y = startY;
+    col.forEach(div=>{
+      const h = headerH + div.events.length*rowH;
+      drawPanel(c,x,y,colW,h);
+
+      const {size, lines} = fitText(c,div.name.toUpperCase(),colW-24,headerH*.8,26,14,1,600);
+      c.textAlign = 'center';
+      c.fillStyle = '#f2f2f2';
+      c.font = `600 ${size}px ${FONT}`;
+      drawTextLines(c,lines,size,x + colW/2,y + headerH/2);
+      hLine(c,x,x+colW,y+headerH,ORANGE,2);
+
+      div.events.forEach((ev,i)=>{
+        const ry = y + headerH + i*rowH;
+        if(i > 0) hLine(c,x+10,x+colW-10,ry,'rgba(255,255,255,.16)');
+        drawEventRow(c,ev,x,ry,colW,rowH,year);
+      });
+      y += h + gap;
+    });
+  });
+  return rowH;
+}
+
+function drawFaixas(c,divs,top,year){
+  const avail = AREA_BOTTOM - top;
+  const headerH = 46;
+  const gap = 12;
+  const lines = divs.map(d=>Math.ceil(d.events.length/2));
+  const totalLines = lines.reduce((a,b)=>a+b,0);
+  const rowH = Math.min(54, (avail - divs.length*headerH - (divs.length-1)*gap) / totalLines);
+
+  const total = divs.reduce((s,d,i)=>s + headerH + lines[i]*rowH, 0) + (divs.length-1)*gap;
+  let y = top + Math.max(0, (avail - total) / 2);
+  const x = AREA_X, w = AREA_W, half = w/2;
+
+  divs.forEach((div,di)=>{
+    const h = headerH + lines[di]*rowH;
+    drawPanel(c,x,y,w,h);
+
+    // Cabeçalho com fundo laranja translúcido, recortado no canto arredondado.
+    c.save();
+    roundRect(c,x,y,w,h,10);
+    c.clip();
+    c.fillStyle = 'rgba(243,108,10,.24)';
+    c.fillRect(x,y,w,headerH);
+    c.restore();
+    hLine(c,x,x+w,y+headerH,'rgba(243,108,10,.8)',1.5);
+
+    c.font = `500 15px ${FONT}`;
+    const countText = `${div.events.length} EVENTO${div.events.length === 1 ? '' : 'S'}`;
+    const countW = c.measureText(countText).width;
+    c.textAlign = 'right';
+    c.fillStyle = '#c4c4c4';
+    c.fillText(countText, x + w - 18, y + headerH/2 + 6);
+
+    const {size, lines:nameLines} = fitText(c,div.name.toUpperCase(),w - 54 - countW,headerH*.8,26,14,1,700);
+    c.textAlign = 'left';
+    c.fillStyle = '#f5f5f5';
+    c.font = `700 ${size}px ${FONT}`;
+    drawTextLines(c,nameLines,size,x + 18,y + headerH/2);
+
+    // Metade dos eventos em cada coluna, lidos de cima pra baixo.
+    const n = lines[di];
+    if(div.events.length > n){
+      c.strokeStyle = 'rgba(255,255,255,.2)';
+      c.lineWidth = 1;
+      c.beginPath();
+      c.moveTo(x + half, y + headerH);
+      c.lineTo(x + half, y + h);
+      c.stroke();
+    }
+    div.events.forEach((ev,i)=>{
+      const col = i < n ? 0 : 1;
+      const row = col ? i - n : i;
+      const ry = y + headerH + row*rowH;
+      const cx = x + col*half;
+      if(row > 0) hLine(c,cx+10,cx+half-10,ry,'rgba(255,255,255,.14)');
+      drawEventRow(c,ev,cx,ry,half,rowH,year);
+    });
+
+    y += h + gap;
+  });
+  return rowH;
+}
+
+function drawLista(c,divs,top,year){
+  const avail = AREA_BOTTOM - top;
+  const all = [];
+  divs.forEach((div,di)=>{
+    const chip = {tag:tagOf(div), style:di};
+    div.events.forEach((ev,i)=>all.push({ev, chip, key:dateKey(ev.date), order:di*1000+i}));
+  });
+  all.sort((a,b)=>a.key - b.key || a.order - b.order);
+
+  // Legenda: sigla + nome de cada divisão, quebrando linha se precisar.
+  const legH = 34, legGap = 22, legPad = 14;
+  c.font = `500 17px ${FONT}`;
+  const items = divs.map((div,di)=>{
+    c.font = chipFont(legH);
+    const chipW = c.measureText(tagOf(div)).width + legH*.6*.8;
+    c.font = `500 17px ${FONT}`;
+    const name = div.name.toUpperCase();
+    return {div, di, chipW, name, w:chipW + 8 + c.measureText(name).width};
+  });
+  const legendRows = [[]];
+  let rowW = 0;
+  items.forEach(it=>{
+    const add = (legendRows[legendRows.length-1].length ? legGap : 0) + it.w;
+    if(rowW + add > AREA_W - legPad*2 && legendRows[legendRows.length-1].length){
+      legendRows.push([it]);
+      rowW = it.w;
+    }else{
+      legendRows[legendRows.length-1].push(it);
+      rowW += add;
+    }
+  });
+  const legendBoxH = legendRows.length*legH + 16;
+
+  const listGap = 12;
+  const rowH = Math.min(54, (avail - legendBoxH - listGap) / all.length);
+  const total = legendBoxH + listGap + rowH*all.length;
+  const y0 = top + Math.max(0, (avail - total) / 2);
+
+  drawPanel(c,AREA_X,y0,AREA_W,legendBoxH);
+  legendRows.forEach((row,ri)=>{
+    const rw = row.reduce((s,it)=>s + it.w, 0) + (row.length-1)*legGap;
+    let lx = AREA_X + (AREA_W - rw)/2;
+    const cy = y0 + 8 + ri*legH + legH/2;
+    row.forEach(it=>{
+      drawChip(c,{tag:tagOf(it.div), style:it.di},lx,cy,legH,it.chipW);
+      c.textAlign = 'left';
+      c.fillStyle = '#dcdcdc';
+      c.font = `500 17px ${FONT}`;
+      c.fillText(it.name, lx + it.chipW + 8, cy + 6);
+      lx += it.w + legGap;
+    });
+  });
+
+  const ly = y0 + legendBoxH + listGap;
+  drawPanel(c,AREA_X,ly,AREA_W,rowH*all.length);
+
+  // Largura única das siglas pra alinhar os títulos.
+  c.font = chipFont(rowH);
+  const chipW = Math.max(...divs.map(d=>c.measureText(tagOf(d)).width)) + clamp(rowH*.6,14,30)*.8;
+
+  let prevKey = null;
+  all.forEach((item,i)=>{
+    const ry = ly + i*rowH;
+    const firstOfDay = item.key !== prevKey;
+    prevKey = item.key;
+    if(i > 0){
+      if(firstOfDay) hLine(c,AREA_X,AREA_X+AREA_W,ry,'rgba(255,255,255,.28)');
+      else hLine(c,AREA_X+16,AREA_X+AREA_W-16,ry,'rgba(255,255,255,.10)',1,[4,5]);
+    }
+    drawEventRow(c,item.ev,AREA_X,ry,AREA_W,rowH,year,{showDate:firstOfDay, chip:item.chip, chipW});
+  });
+  return rowH;
+}
+
+/* ---------- Desenho completo ---------- */
+
+// Desenha a agenda num contexto qualquer (o canvas principal ou os exemplos).
+// Retorna a altura de linha usada, pra avisar quando ficou apertado demais.
+function render(c,data){
+  c.clearRect(0,0,W,H);
+  if(bg.complete && bg.naturalWidth) c.drawImage(bg,0,0,W,H);
+  else{ c.fillStyle = '#000'; c.fillRect(0,0,W,H); }
+
+  const off = +data.headerOffset || 0;
+  const monthY = 590 + off;
+  const regionalY = 634 + off;
+  const regional = (data.regional || '').toUpperCase();
+  let headerBottom = 560;
+
+  c.textAlign = 'center';
+  if(data.month){
+    c.fillStyle = ORANGE;
+    c.font = `700 50px ${FONT}`;
+    c.fillText(data.month, W/2, monthY);
+    headerBottom = monthY;
+  }
+  if(regional){
+    c.fillStyle = '#c4c4c4';
+    c.font = `600 28px ${FONT}`;
+    c.fillText(regional, W/2, regionalY);
+    headerBottom = regionalY;
+  }
+
+  const top = Math.max(672, headerBottom + 22);
+  const divs = data.divisions.filter(d=>d.events.length);
+  if(!divs.length) return null;
+
+  if(data.layout === 'faixas') return drawFaixas(c,divs,top,data.year);
+  if(data.layout === 'lista') return drawLista(c,divs,top,data.year);
+  return drawGrade(c,divs,top,data.year);
+}
+
+const MIN_READABLE_ROW = 32;
+
+function draw(){
+  const rowH = render(ctx,state);
+  const warn = document.getElementById('warn');
+  if(rowH !== null && rowH < MIN_READABLE_ROW){
+    const other = state.layout === 'lista'
+      ? 'O layout "Grade" ou "Faixas" cabe bem mais eventos.'
+      : 'Vale pensar em separar em duas imagens.';
+    warn.textContent = `Tem muito evento pra esse layout: os textos ficaram pequenos e podem ficar difíceis de ler no celular. ${other}`;
+    warn.classList.add('show');
+  }else{
+    warn.classList.remove('show');
+  }
+}
+
+/* ---------- Exemplos dos layouts ---------- */
+
+const exampleImages = {};
+
+function renderExamples(){
+  const off = document.createElement('canvas');
+  off.width = W;
+  off.height = H;
+  const oc = off.getContext('2d');
+  const monthIdx = 9;
+  const examples = {
+    grade:sampleDivisions(monthIdx,6),
+    faixas:sampleDivisions(monthIdx,5),
+    lista:sampleDivisions(monthIdx,5,5)
+  };
+  layouts.forEach(l=>{
+    render(oc,{
+      layout:l.id,
+      regional:'REGIONAL [NOME] - MT',
+      month:'OUTUBRO',
+      year:2026,
+      headerOffset:0,
+      divisions:examples[l.id]
+    });
+    exampleImages[l.id] = off.toDataURL('image/jpeg',.85);
+  });
+  renderLayoutCards();
+}
+
+function renderLayoutCards(){
+  const wrap = document.getElementById('layoutCards');
+  wrap.innerHTML = '';
+  layouts.forEach(l=>{
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'layout-card' + (l.id === state.layout ? ' selected' : '');
+    b.title = l.title;
+    b.innerHTML = `${exampleImages[l.id] ? `<img src="${exampleImages[l.id]}" alt="Exemplo do layout ${esc(l.title)}">` : ''}${esc(l.name)}`;
+    b.onclick = () => setLayout(l.id);
+    wrap.appendChild(b);
+  });
+
+  const cur = layouts.find(l=>l.id === state.layout) || layouts[0];
+  document.getElementById('layoutDesc').innerHTML =
+    `<strong>${esc(cur.title)}</strong> — ${esc(cur.desc)}<br>${esc(cur.capacity)}<br>` +
+    `<button type="button" class="zoom-link" id="zoomExample">Ver exemplo grande</button>`;
+  document.getElementById('zoomExample').onclick = () => openExample(cur.id);
+}
+
+function setLayout(id){
+  state.layout = id;
+  renderLayoutCards();
+  renderDivisions();
+  draw();
+}
+
+let exampleShown = null;
+
+function openExample(id){
+  if(!exampleImages[id]) return;
+  exampleShown = id;
+  document.getElementById('exampleImg').src = exampleImages[id];
+  document.getElementById('exampleModal').classList.add('open');
+}
+
+function closeExample(){
+  document.getElementById('exampleModal').classList.remove('open');
+}
+
+document.getElementById('closeExample').onclick = closeExample;
+document.getElementById('useExample').onclick = () => {
+  if(exampleShown) setLayout(exampleShown);
+  closeExample();
+};
+document.getElementById('exampleModal').addEventListener('click', e=>{
+  if(e.target.id === 'exampleModal') closeExample();
+});
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape') closeExample();
+});
+
+/* ---------- Lista de divisões ---------- */
+
+function iconSelectHtml(selected){
+  return iconOptions.map(([v,l])=>`<option value="${v}"${v === selected ? ' selected' : ''}>${v} ${esc(l)}</option>`).join('');
+}
+
+function renderDivisions(){
+  const list = document.getElementById('divisionList');
+  if(!state.divisions.length){
+    list.innerHTML = '<div class="empty">Nenhuma divisão. Adicione uma abaixo.</div>';
+    return;
+  }
+  list.innerHTML = '';
+
+  state.divisions.forEach((div,di)=>{
+    const d = document.createElement('details');
+    d.className = 'division';
+    d.open = openDivisions.has(div.id);
+    d.addEventListener('toggle', ()=>{
+      if(d.open) openDivisions.add(div.id); else openDivisions.delete(div.id);
+    });
+
+    const events = div.events.map((ev,i)=>`
+      <div class="event">
+        <div class="event-head">
+          <input data-ev="${i}" data-k="date" value="${esc(ev.date)}" placeholder="01/10">
+          <input data-ev="${i}" data-k="icon" value="${esc(ev.icon)}">
+        </div>
+        <input class="title-in" data-ev="${i}" data-k="title" value="${esc(ev.title)}" placeholder="Nome do evento">
+        <div class="btns">
+          <button class="secondary" data-act="evUp" data-ev="${i}">↑</button>
+          <button class="secondary" data-act="evDown" data-ev="${i}">↓</button>
+          <button class="danger" data-act="evDel" data-ev="${i}">Excluir</button>
+        </div>
+      </div>`).join('');
+
+    d.innerHTML = `
+      <summary>
+        <span class="name">${esc(div.name || 'Divisão sem nome')}</span>
+        <span class="count">${div.events.length} evento${div.events.length === 1 ? '' : 's'}</span>
+      </summary>
+      <div class="division-body">
+        <label>Nome da divisão</label>
+        <input data-div="name" value="${esc(div.name)}" placeholder="DIVISÃO CIDADE - MT">
+        ${state.layout === 'lista' ? `
+        <label>Sigla (layout "Lista por data")</label>
+        <input data-div="tag" value="${esc(div.tag || '')}" placeholder="${esc(autoTag(div.name))}" maxlength="8">` : ''}
+
+        ${events || '<div class="empty">Nenhum evento nessa divisão.</div>'}
+
+        <div class="add-box">
+          <div class="event-head">
+            <input data-new="date" placeholder="Data (01/10)" inputmode="numeric">
+            <select data-new="icon" title="Ícone">${iconSelectHtml('🍺')}</select>
+          </div>
+          <input class="title-in" data-new="title" placeholder="Nome do evento" style="margin-top:6px">
+          <div class="btns">
+            <button class="primary small" data-act="evAdd">+ Adicionar evento</button>
+          </div>
+        </div>
+
+        <div class="btns">
+          <button class="secondary small" data-act="sort">Ordenar por data</button>
+          <button class="secondary small" data-act="import">📥 Importar</button>
+          <button class="secondary small" data-act="divUp">↑</button>
+          <button class="secondary small" data-act="divDown">↓</button>
+          <button class="danger small" data-act="divDel">Excluir divisão</button>
+        </div>
+      </div>`;
+
+    // Edição direta: atualiza o estado e redesenha sem recriar a lista
+    // (assim o campo não perde o foco enquanto digita).
+    d.querySelectorAll('input[data-ev]').forEach(el=>{
+      el.addEventListener('input', ()=>{
+        div.events[+el.dataset.ev][el.dataset.k] = el.value;
+        draw();
+      });
+    });
+    d.querySelectorAll('input[data-div]').forEach(el=>{
+      el.addEventListener('input', ()=>{
+        div[el.dataset.div] = el.value;
+        if(el.dataset.div === 'name'){
+          d.querySelector('summary .name').textContent = el.value || 'Divisão sem nome';
+          const tagIn = d.querySelector('input[data-div="tag"]');
+          if(tagIn) tagIn.placeholder = autoTag(el.value);
+        }
+        draw();
+      });
+    });
+
+    const newDate = d.querySelector('input[data-new="date"]');
+    setupDateInput(newDate);
+    d.querySelector('input[data-new="title"]').addEventListener('keydown', e=>{
+      if(e.key === 'Enter') addEvent(div,d);
+    });
+
+    d.querySelectorAll('button[data-act]').forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        e.preventDefault();
+        const i = +btn.dataset.ev;
+        switch(btn.dataset.act){
+          case 'evUp': moveItem(div.events,i,-1); break;
+          case 'evDown': moveItem(div.events,i,1); break;
+          case 'evDel': div.events.splice(i,1); break;
+          case 'evAdd': addEvent(div,d); return;
+          case 'sort': div.events.sort((a,b)=>dateKey(a.date) - dateKey(b.date)); break;
+          case 'import': importTarget = div; openFilePicker(); return;
+          case 'divUp': moveItem(state.divisions,di,-1); break;
+          case 'divDown': moveItem(state.divisions,di,1); break;
+          case 'divDel':
+            if(!confirm(`Excluir a ${div.name || 'divisão'} e todos os eventos dela?`)) return;
+            state.divisions.splice(di,1);
+            break;
+        }
+        renderDivisions();
+        draw();
+      });
+    });
+
+    list.appendChild(d);
+  });
+}
+
+function moveItem(arr,i,dir){
+  const j = i + dir;
+  if(j < 0 || j >= arr.length) return;
+  [arr[i],arr[j]] = [arr[j],arr[i]];
+}
+
+function addEvent(div,el){
+  const dateIn = el.querySelector('input[data-new="date"]');
+  completeDate(dateIn);
+  const date = dateIn.value.trim();
+  const title = el.querySelector('input[data-new="title"]').value.trim();
+  const icon = el.querySelector('select[data-new="icon"]').value;
+  if(!date || !title){
+    alert('Preencha pelo menos a data e o evento.');
+    return;
+  }
+  div.events.push({date, title, icon});
+  renderDivisions();
+  draw();
+  const again = document.querySelectorAll('.division')[state.divisions.indexOf(div)];
+  if(again) again.querySelector('input[data-new="date"]').focus();
+}
+
+// Formata a data enquanto digita e completa com o mês selecionado.
+function setupDateInput(input){
+  input.addEventListener('input', ()=>{
+    const digits = input.value.replace(/\D/g,'').slice(0,4);
+    input.value = digits.length <= 2 ? digits : digits.slice(0,2) + '/' + digits.slice(2);
+  });
+  input.addEventListener('blur', ()=>completeDate(input));
+}
+
+function completeDate(input){
+  const digits = input.value.replace(/\D/g,'');
+  if(digits.length < 1 || digits.length > 2) return;
+  const monthIdx = monthIndexByName[state.month];
+  if(monthIdx === undefined) return;
+  input.value = digits.padStart(2,'0') + '/' + String(monthIdx+1).padStart(2,'0');
+}
+
+document.getElementById('addDivision').onclick = () => {
+  const div = {id:uid(), name:'DIVISÃO NOVA - MT', tag:'', events:[]};
+  state.divisions.push(div);
+  openDivisions.add(div.id);
+  renderDivisions();
+  draw();
+  const all = document.querySelectorAll('.division');
+  const input = all[all.length-1].querySelector('input[data-div="name"]');
+  input.focus();
+  input.select();
+};
+
+/* ---------- Importação ---------- */
+
+let importTarget = null;
+
+function openFilePicker(){
+  const f = document.getElementById('excelFile');
+  f.value = '';
+  f.click();
+}
+
+document.getElementById('importAll').onclick = () => {
+  importTarget = null;
+  openFilePicker();
+};
+
+function normalizeHeader(h){
+  return String(h || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+}
+
+function findColumn(headers, exactNames, includeNames, excludeNames = []){
+  let idx = headers.findIndex(h => exactNames.includes(h));
+  if(idx !== -1) return idx;
+  return headers.findIndex(h =>
+    includeNames.some(k => h.includes(k)) && !excludeNames.some(k => h.includes(k))
+  );
+}
+
+function parseRows(rows){
+  if(!rows.length) return null;
+  const headers = rows[0].map(normalizeHeader);
+  const divCol = findColumn(headers, ['divisao','regional'], ['divis']);
+  const dateCol = findColumn(headers, ['data','dia'], ['data','dia'], ['semana']);
+  const titleCol = findColumn(headers, ['evento','nome do evento','titulo'], ['evento','titulo'], ['divis']);
+  const iconCol = findColumn(headers, ['icone','emoji'], ['icone','emoji']);
+  if(dateCol === -1 || titleCol === -1) return null;
+
+  const result = [];
+  for(let i=1;i<rows.length;i++){
+    const row = rows[i];
+    if(!row || !row.length) continue;
+    const date = formatDate(row[dateCol]);
+    const title = String(row[titleCol] == null ? '' : row[titleCol]).trim();
+    if(!date || !title) continue;
+    const icon = iconCol !== -1 ? String(row[iconCol] || '').trim() : '';
+    const division = divCol !== -1 ? String(row[divCol] || '').trim() : '';
+    result.push({division, ev:{date, title, icon:icon || '📍'}});
+  }
+  return {hasDivision: divCol !== -1, items: result};
+}
+
+document.getElementById('excelFile').addEventListener('change', e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = evt => {
+    let parsed;
+    try{
+      const workbook = XLSX.read(new Uint8Array(evt.target.result), {type:'array', cellDates:true});
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      parsed = parseRows(XLSX.utils.sheet_to_json(sheet, {header:1, defval:''}));
+    }catch(err){
+      alert('Não consegui ler essa planilha. Confira se é um arquivo .xlsx, .xls ou .csv válido.');
+      return;
+    }
+    if(!parsed || !parsed.items.length){
+      alert('Não encontrei colunas de data e evento nessa planilha. Confira os nomes das colunas.');
+      return;
+    }
+
+    if(importTarget){
+      const replace = confirm(`Encontrei ${parsed.items.length} evento(s).\n\nOK = substituir os eventos da ${importTarget.name}.\nCancelar = adicionar aos que já existem.`);
+      const evs = parsed.items.map(it=>it.ev);
+      importTarget.events = replace ? evs : importTarget.events.concat(evs);
+    }else{
+      if(!parsed.hasDivision){
+        alert('Essa planilha não tem coluna de divisão. Abra a divisão desejada e use o botão "Importar" dentro dela.');
+        return;
+      }
+      const groups = new Map();
+      parsed.items.forEach(it=>{
+        const name = (it.division || 'SEM DIVISÃO').toUpperCase();
+        if(!groups.has(name)) groups.set(name, []);
+        groups.get(name).push(it.ev);
+      });
+      const replace = confirm(`Encontrei ${parsed.items.length} evento(s) em ${groups.size} divisão(ões).\n\nOK = substituir todas as divisões atuais.\nCancelar = juntar com as divisões que já existem.`);
+      if(replace) state.divisions = [];
+      groups.forEach((evs,name)=>{
+        const existing = state.divisions.find(d=>d.name.trim().toUpperCase() === name);
+        if(existing) existing.events = existing.events.concat(evs);
+        else state.divisions.push({id:uid(), name, tag:'', events:evs});
+      });
+    }
+    renderDivisions();
+    draw();
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+/* ---------- Configuração ---------- */
+
+const regionalIn = document.getElementById('regional');
+const monthIn = document.getElementById('month');
+const yearIn = document.getElementById('year');
+const offsetIn = document.getElementById('headerOffset');
+
+regionalIn.value = state.regional;
+monthIn.value = state.month;
+yearIn.value = state.year;
+offsetIn.value = state.headerOffset;
+document.getElementById('headerOffsetVal').textContent = state.headerOffset + 'px';
+
+regionalIn.addEventListener('input', ()=>{ state.regional = regionalIn.value; draw(); });
+yearIn.addEventListener('input', ()=>{ state.year = +yearIn.value || now.getFullYear(); draw(); });
+offsetIn.addEventListener('input', ()=>{
+  state.headerOffset = +offsetIn.value;
+  document.getElementById('headerOffsetVal').textContent = offsetIn.value + 'px';
+  draw();
+});
+
+// Ao trocar o mês, leva todas as datas pro mês novo (mantendo o dia).
+monthIn.addEventListener('change', ()=>{
+  state.month = monthIn.value;
+  const monthIdx = monthIndexByName[state.month];
+  if(monthIdx !== undefined){
+    state.divisions.forEach(div=>div.events.forEach(ev=>{
+      const dm = resolveDayMonth(ev.date);
+      if(dm) ev.date = String(dm.day).padStart(2,'0') + '/' + String(monthIdx+1).padStart(2,'0');
+    }));
+  }
+  renderDivisions();
+  draw();
+});
+
+/* ---------- Arquivo ---------- */
+
+document.getElementById('save').onclick = () => {
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    alert('Salvo neste navegador.');
+  }catch(e){
+    alert('Não consegui salvar neste navegador.');
+  }
+};
+
+document.getElementById('clear').onclick = () => {
+  if(confirm('Apagar todas as divisões e eventos?')){
+    state.divisions = [];
+    renderDivisions();
+    draw();
+  }
+};
+
+function getPosterBlob(){
+  draw();
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+}
+
+function getPosterFile(blob){
+  return new File([blob], 'agenda-regional-9x16.png', {type:'image/png'});
+}
+
+function downloadBlob(blob){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.download = 'agenda-regional-9x16.png';
+  a.href = url;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+// No Safari (iOS) o <a download> falha; a folha de compartilhamento é o
+// jeito confiável de salvar a imagem por lá.
+async function shareOrDownload(title){
+  const blob = await getPosterBlob();
+  const file = getPosterFile(blob);
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share(title ? {files:[file], title} : {files:[file]});
+      return true;
+    }catch(err){
+      if(err && err.name === 'AbortError') return true;
+    }
+  }
+  downloadBlob(blob);
+  return false;
+}
+
+document.getElementById('download').onclick = () => shareOrDownload();
+
+document.getElementById('shareWhatsapp').onclick = async () => {
+  const shared = await shareOrDownload('Agenda');
+  if(!shared){
+    alert('Seu navegador não permite enviar a imagem direto pro WhatsApp. Baixei o PNG — é só anexar na conversa do WhatsApp.');
+    window.open('https://wa.me/', '_blank');
+  }
+};
+
+/* ---------- Início ---------- */
+
+function refreshAll(){
+  draw();
+  renderExamples();
+}
+
+bg.onload = refreshAll;
+renderLayoutCards();
+renderDivisions();
+draw();
+
+// A fonte do Google carrega depois; redesenha quando ela chegar.
+if(document.fonts && document.fonts.load){
+  Promise.all([
+    document.fonts.load(`700 40px ${FONT}`),
+    document.fonts.load(`600 40px ${FONT}`),
+    document.fonts.load(`500 40px ${FONT}`)
+  ]).then(refreshAll).catch(()=>{});
+}
+</script>
+</body>
+</html>
