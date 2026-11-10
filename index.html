@@ -918,11 +918,14 @@ function draw(){
   const listHeight = rowH * n;
   const y = listTop + Math.max(0, (available - listHeight) / 2);
 
-  // Só desenha a moldura quando houver eventos.
+  // Só desenha a moldura quando houver eventos. O painel escurece o fundo
+  // atrás da lista (como no gerador regional) para o texto ficar legível.
   if(events.length){
+    roundRect(ctx,x,y,w,rowH*n,10);
+    ctx.fillStyle='rgba(8,8,8,.84)';
+    ctx.fill();
     ctx.strokeStyle='rgba(225,225,225,.85)';
     ctx.lineWidth=1.5;
-    roundRect(ctx,x,y,w,rowH*n,10);
     ctx.stroke();
   }
 
