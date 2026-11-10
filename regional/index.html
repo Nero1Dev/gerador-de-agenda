@@ -439,10 +439,11 @@ const STORE_KEY = 'agendaRegionalV1';
 
 // Fundos disponíveis (os mesmos do gerador normal). Para adicionar um novo,
 // basta incluir um objeto {id, name, src, headerOffset} nesta lista.
+// headerY é a altura do mês (padrão 590); a agenda começa logo abaixo dele.
 const bgStyles = [
   {id:'base2', name:'Agenda regional', src:'../agenda_base_9x16-2.png', headerOffset:0},
   {id:'base', name:'Agenda Insana', src:'../agenda_base_9x16.png', headerOffset:0},
-  {id:'base3', name:'Agenda Insana Brasnorte', src:'../agenda_base_9x16-3.png', headerOffset:-100}
+  {id:'base3', name:'Agenda Insana Brasnorte', src:'../agenda_base_9x16-3.png', headerOffset:0, headerY:275}
 ];
 
 const bg = new Image();
@@ -956,10 +957,12 @@ function render(c,data){
   else{ c.fillStyle = '#000'; c.fillRect(0,0,W,H); }
 
   const off = +data.headerOffset || 0;
-  const monthY = 590 + off;
-  const regionalY = 634 + off;
+  const bgStyle = bgStyles.find(s=>s.id === data.bg) || bgStyles[0];
+  const headerY = bgStyle.headerY || 590;
+  const monthY = headerY + off;
+  const regionalY = headerY + 44 + off;
   const regional = (data.regional || '').toUpperCase();
-  let headerBottom = 560;
+  let headerBottom = headerY - 30;
 
   c.textAlign = 'center';
   if(data.month){
@@ -975,7 +978,7 @@ function render(c,data){
     headerBottom = regionalY;
   }
 
-  const top = Math.max(672, headerBottom + 22);
+  const top = Math.max(headerY + 82, headerBottom + 22);
   const divs = data.divisions.filter(d=>d.events.length);
   if(!divs.length) return null;
 
@@ -1021,6 +1024,7 @@ function renderExamples(){
       regional:'REGIONAL [NOME] - MT',
       month:'OUTUBRO',
       year:2026,
+      bg:state.bg,
       headerOffset:0,
       divisions:examples[l.id]
     });

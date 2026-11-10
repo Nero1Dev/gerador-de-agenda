@@ -404,10 +404,12 @@ function esc(s){
 
 // Estilos de fundo disponíveis. Para adicionar um novo estilo no futuro,
 // basta incluir um novo objeto {id, name, src} nesta lista.
+// Opcionais: headerY (altura do mês, padrão 580) e bottom (fim da lista,
+// padrão 1695), para fundos com mais espaço livre.
 const bgStyles = [
   {id:'base2', name:'Agenda regional', src:'agenda_base_9x16-2.png', headerOffsetY:40},
   {id:'base', name:'Agenda Insana', src:'agenda_base_9x16.png', headerOffsetY:0},
-  {id:'base3', name:'Agenda Insana Brasnorte', src:'agenda_base_9x16-3.png', headerOffsetY:-100}
+  {id:'base3', name:'Agenda Insana Brasnorte', src:'agenda_base_9x16-3.png', headerOffsetY:0, headerY:270, bottom:1840}
 ];
 
 let currentBgId = localStorage.getItem('agendaInsanaBgV3') || bgStyles[0].id;
@@ -869,32 +871,34 @@ function draw(){
   // Alguns fundos têm o cabeçalho desenhado mais alto; o usuário pode
   // ajustar isso manualmente pelo slider "Posição do mês/divisão".
   const headerOffsetY = getHeaderOffset(currentBgId);
+  const bgStyle = bgStyles.find(s=>s.id===currentBgId) || bgStyles[0];
+  const headerY = bgStyle.headerY || 580;
 
   if(month){
     ctx.textAlign='center';
     ctx.fillStyle='#F36C0A';
     ctx.font='700 42px Arial';
-    ctx.fillText(month, canvas.width/2, 580 + headerOffsetY);
+    ctx.fillText(month, canvas.width/2, headerY + headerOffsetY);
   }
 
   if(showDivision && division){
     ctx.textAlign='center';
     ctx.fillStyle='#bcbcbc';
     ctx.font='700 30px Arial';
-    ctx.fillText(division, canvas.width/2, 620 + headerOffsetY);
+    ctx.fillText(division, canvas.width/2, headerY + 40 + headerOffsetY);
   }
 
   // Mantém espaço abaixo do cabeçalho e acima do detalhe dourado inferior.
   // A lista fica fixa mesmo com o ajuste de posição do mês/divisão, mas
   // nunca chega mais perto que 15px do texto mais baixo do cabeçalho.
   const x = 72;
-  const baseListTop = 620 + (showDivision && division ? 34 : 0) + 10;
+  const baseListTop = headerY + 40 + (showDivision && division ? 34 : 0) + 10;
   let headerBottomY = null;
-  if(showDivision && division) headerBottomY = 620 + headerOffsetY;
-  else if(month) headerBottomY = 580 + headerOffsetY;
+  if(showDivision && division) headerBottomY = headerY + 40 + headerOffsetY;
+  else if(month) headerBottomY = headerY + headerOffsetY;
   const listTop = headerBottomY !== null ? Math.max(baseListTop, headerBottomY + 15) : baseListTop;
   const w = canvas.width - 144;
-  const bottom = 1695;
+  const bottom = bgStyle.bottom || 1695;
   const n = Math.max(events.length,1);
 
   // Ajusta a altura automaticamente para nunca sair do 9:16,
