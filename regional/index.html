@@ -335,6 +335,11 @@ canvas{
       <div class="layout-desc" id="layoutDesc"></div>
     </div>
 
+    <div class="section">
+      <h3>Fundo</h3>
+      <div class="layouts" id="bgCards"></div>
+    </div>
+
     <div class="warn" id="warn"></div>
 
     <div class="section">
@@ -432,8 +437,15 @@ const ORANGE = '#F36C0A';
 
 const STORE_KEY = 'agendaRegionalV1';
 
+// Fundos disponíveis (os mesmos do gerador normal). Para adicionar um novo,
+// basta incluir um objeto {id, name, src, headerOffset} nesta lista.
+const bgStyles = [
+  {id:'base2', name:'Agenda regional', src:'../agenda_base_9x16-2.png', headerOffset:0},
+  {id:'base', name:'Agenda Insana', src:'../agenda_base_9x16.png', headerOffset:0},
+  {id:'base3', name:'Agenda Insana Brasnorte', src:'../agenda_base_9x16-3.png', headerOffset:-100}
+];
+
 const bg = new Image();
-bg.src = '../agenda_base_9x16-2.png';
 
 const weekdayShort = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
 const monthIndexByName = {
@@ -511,6 +523,8 @@ if(!state || !Array.isArray(state.divisions)){
     divisions:sampleDivisions(now.getMonth())
   };
 }
+if(!bgStyles.some(s=>s.id === state.bg)) state.bg = bgStyles[0].id;
+bg.src = bgStyles.find(s=>s.id === state.bg).src;
 
 const openDivisions = new Set();
 
@@ -1035,6 +1049,30 @@ function renderLayoutCards(){
   document.getElementById('zoomExample').onclick = () => openExample(cur.id);
 }
 
+function renderBgCards(){
+  const wrap = document.getElementById('bgCards');
+  wrap.innerHTML = '';
+  bgStyles.forEach(s=>{
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'layout-card' + (s.id === state.bg ? ' selected' : '');
+    b.innerHTML = `<img src="${s.src}" alt="Fundo ${esc(s.name)}" loading="lazy">${esc(s.name)}`;
+    b.onclick = () => setBg(s.id);
+    wrap.appendChild(b);
+  });
+}
+
+// Troca o fundo; o mês/regional volta pra posição indicada pra ele.
+function setBg(id){
+  const s = bgStyles.find(x=>x.id === id) || bgStyles[0];
+  state.bg = s.id;
+  state.headerOffset = s.headerOffset;
+  offsetIn.value = state.headerOffset;
+  document.getElementById('headerOffsetVal').textContent = state.headerOffset + 'px';
+  renderBgCards();
+  bg.src = s.src; // o bg.onload redesenha a agenda e os exemplos
+}
+
 function setLayout(id){
   state.layout = id;
   renderLayoutCards();
@@ -1447,6 +1485,7 @@ function refreshAll(){
 }
 
 bg.onload = refreshAll;
+renderBgCards();
 renderLayoutCards();
 renderDivisions();
 draw();
